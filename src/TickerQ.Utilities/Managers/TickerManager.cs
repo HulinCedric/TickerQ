@@ -79,6 +79,9 @@ namespace TickerQ.Utilities.Managers
         Task<TickerResult<TCronTicker>> ICronTickerManager<TCronTicker>.DeleteBatchAsync(List<Guid> ids, CancellationToken cancellationToken)
             => DeleteCronTickersBatchAsync(ids, cancellationToken);
 
+        Task<TickerResult<TCronTicker>> ICronTickerManager<TCronTicker>.RunCronTickerOnDemandAsync(Guid id, CancellationToken cancellationToken)
+            => RunCronTickerOnDemandInternalAsync(id, cancellationToken);
+        
         private async Task<TickerResult<TTimeTicker>> AddTimeTickerAsync(TTimeTicker entity, CancellationToken cancellationToken)
         {
             if (entity.Id == Guid.Empty)
@@ -576,6 +579,67 @@ namespace TickerQ.Utilities.Managers
                 _tickerQHostScheduler.Restart();
 
             return new TickerResult<TCronTicker>(affectedRows);
+        }
+        
+        private async Task<TickerResult<TCronTicker>> RunCronTickerOnDemandInternalAsync(Guid id, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var now = _clock.UtcNow;
+
+                var onDemandOccurrence = new CronTickerOccurrenceEntity<TCronTicker>
+                {
+                    Id = Guid.NewGuid(),
+                    Status = Enums.TickerStatus.Idle,
+                    ExecutionTime = now,
+                    LockedAt = null,
+                    CronTickerId = id,
+                };
+
+                var affectedRows = await _persistenceProvider.InsertCronTickerOccurrences([onDemandOccurrence], cancellationToken).ConfigureAwait(false);
+
+                // Acquire and run immediately
+                var acquired = await _persistenceProvider
+                    .AcquireImmediateCronOccurrencesAsync([onDemandOccurrence.Id], cancellationToken)
+                    .ConfigureAwait(false);
+
+                CronTickerOccurrenceEntity<TCronTicker>? acquiredOccurrence = null;
+
+                if (acquired.Length > 0)
+                {
+                    var occurrence = acquired[0];
+                    acquiredOccurrence = occurrence;
+                    var context = new InternalFunctionContext
+                    {
+                        ParentId = occurrence.CronTickerId,
+                        FunctionName = occurrence.CronTicker.Function,
+                        TickerId = occurrence.Id,
+                        Type = Enums.TickerType.CronTickerOccurrence,
+                        Retries = occurrence.CronTicker.Retries,
+                        RetryIntervals = occurrence.CronTicker.RetryIntervals,
+                        ExecutionTime = occurrence.ExecutionTime
+                    };
+
+                    // Populate cached delegate and priority so the dispatcher can execute the job
+                    if (TickerFunctionProvider.TickerFunctions.TryGetValue(context.FunctionName, out var tickerItem))
+                    {
+                        context.CachedDelegate = tickerItem.Delegate;
+                        context.CachedPriority = tickerItem.Priority;
+                    }
+
+                    await _dispatcher.DispatchAsync([context], cancellationToken).ConfigureAwait(false);
+                }
+
+                // Notify dashboard about the new occurrence (prefer the acquired version if available)
+                if (_notificationHubSender != null)
+                    await _notificationHubSender.AddCronOccurrenceAsync(id, acquiredOccurrence ?? onDemandOccurrence).ConfigureAwait(false);
+
+                return new TickerResult<TCronTicker>(affectedRows);
+            }
+            catch (Exception e)
+            {
+                return new TickerResult<TCronTicker>(e);
+            }
         }
     }
 }

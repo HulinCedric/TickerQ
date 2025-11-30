@@ -18,5 +18,8 @@ namespace TickerQ.Utilities.Interfaces.Managers
         Task<TickerResult<List<TCronTicker>>> AddBatchAsync(List<TCronTicker> entities, CancellationToken cancellationToken = default);
         Task<TickerResult<List<TCronTicker>>> UpdateBatchAsync(List<TCronTicker> cronTickers, CancellationToken cancellationToken = default);
         Task<TickerResult<TCronTicker>> DeleteBatchAsync(List<Guid> ids, CancellationToken cancellationToken = default);
+
+        // Run a cron ticker on demand: create an occurrence and attempt immediate acquisition/dispatch
+        Task<TickerResult<TCronTicker>> RunCronTickerOnDemandAsync(Guid id, CancellationToken cancellationToken = default);
     }
 }
