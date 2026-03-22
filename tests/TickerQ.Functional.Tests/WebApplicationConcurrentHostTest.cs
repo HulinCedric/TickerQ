@@ -14,12 +14,12 @@ public abstract class WebApplicationConcurrentHostTest
     public class FirstWebApplicationShould : IClassFixture<WebApplication>
     {
         [Fact]
-        public void Had_ticker_functions_registered() => VerifyTickerFunctionsRegistered();
+        public void Have_ticker_functions_registered() => VerifyTickerFunctionsRegistered();
     }
 
     public class SecondWebApplicationShould : IClassFixture<WebApplication>
     {
         [Fact]
-        public void Had_ticker_functions_registered() => VerifyTickerFunctionsRegistered();
+        public void Have_ticker_functions_registered() => VerifyTickerFunctionsRegistered();
     }
 }
