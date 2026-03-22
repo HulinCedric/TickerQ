@@ -8,8 +8,8 @@ public abstract class WebApplicationConcurrentHostTest
         => Assert.True(
             TickerFunctionProvider.TickerFunctions.Count > 0,
             "Ticker functions should be registered." +
-            "TickerQ use source generation and static function registration at startup." +
-            "If no function is registered, this means that race condition empty registered functions.");
+            "TickerQ uses source generation and static function registration at startup. " +
+            "If no function is registered, it means a race condition cleared the registered functions.");
 
     public class FirstWebApplicationShould : IClassFixture<WebApplication>
     {
