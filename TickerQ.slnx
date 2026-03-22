@@ -39,5 +39,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/TickerQ.EntityFrameworkCore.Tests/TickerQ.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/TickerQ.Tests/TickerQ.Tests.csproj" />
+    <Project Path="tests\TickerQ.Functional.Tests.WebApi\TickerQ.Functional.Tests.WebApi.csproj" />
+    <Project Path="tests\TickerQ.Functional.Tests\TickerQ.Functional.Tests.csproj" />
   </Folder>
 </Solution>
