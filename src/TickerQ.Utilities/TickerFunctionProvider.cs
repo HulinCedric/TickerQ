@@ -164,6 +164,17 @@ namespace TickerQ.Utilities
         {
             lock (_buildLock)
             {
+                if (IsBuilt)
+                {
+                    // A second host is starting in the same process (e.g. tests).
+                    // Discard any callbacks accumulated since the first build so they
+                    // can't overwrite TickerFunctions with an empty dictionary.
+                    _functionRegistrations = null;
+                    _requestTypeRegistrations = null;
+                    _requestInfoRegistrations = null;
+                    return;
+                }
+
                 // Build functions dictionary
                 if (_functionRegistrations != null)
                 {
